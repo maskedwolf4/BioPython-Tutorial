@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biopython — A Visual Field Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --accent: #3fb950;
+    --accent2: #58a6ff;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --code-bg: #0d1117;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* DNA strand decoration */
+  .dna-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dna-strip {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: repeating-linear-gradient(90deg,
+      var(--accent) 0px, var(--accent) 20px,
+      var(--accent2) 20px, var(--accent2) 40px,
+      var(--accent3) 40px, var(--accent3) 60px,
+      var(--accent4) 60px, var(--accent4) 80px
+    );
+  }
+
+  .dna-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dna-header p {
+    color: var(--muted);
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(63,185,80,.15);
+    border: 1px solid rgba(63,185,80,.35);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 20px 20px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 10px 16px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Sections */
+  .section { display: none; padding: 40px 20px; max-width: 900px; margin: 0 auto; }
+  .section.active { display: block; animation: fadeIn .3s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .section-intro { color: var(--muted); margin-bottom: 32px; font-size: 1rem; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    transition: border-color .2s, transform .2s;
+    cursor: default;
+  }
+
+  .card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+
+  .card-icon { font-size: 1.8rem; margin-bottom: 10px; }
+  .card h3 { font-size: 1rem; font-weight: 500; margin-bottom: 6px; }
+  .card p { font-size: 0.88rem; color: var(--muted); }
+
+  /* Code blocks */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin: 16px 0;
+    position: relative;
+  }
+
+  .code-block .comment { color: #6e7681; font-style: italic; }
+  .code-block .keyword { color: var(--accent4); }
+  .code-block .string { color: var(--accent3); }
+  .code-block .func { color: var(--accent2); }
+  .code-block .number { color: #79c0ff; }
+  .copy-btn {
+    position: absolute; top: 10px; right: 12px;
+    background: var(--border); border: none; color: var(--muted);
+    font-size: 0.75rem; padding: 4px 10px; border-radius: 5px;
+    cursor: pointer; font-family: 'DM Mono', monospace;
+    transition: all .2s;
+  }
+  .copy-btn:hover { background: var(--accent2); color: #000; }
+
+  /* Module map */
+  .module-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+  .module-card {
+    border-radius: 8px;
+    padding: 18px;
+    border-left: 4px solid;
+    background: rgba(255,255,255,.03);
+    cursor: pointer;
+    transition: background .2s;
+  }
+
+  .module-card:hover { background: rgba(255,255,255,.07); }
+  .module-card h4 { font-family: 'DM Mono', monospace; font-size: 0.9rem; margin-bottom: 6px; }
+  .module-card p { font-size: 0.82rem; color: var(--muted); }
+  .module-card.green { border-color: var(--accent); }
+  .module-card.blue { border-color: var(--accent2); }
+  .module-card.red { border-color: var(--accent3); }
+  .module-card.purple { border-color: var(--accent4); }
+  .module-card.yellow { border-color: #e3b341; }
+
+  /* Roadmap */
+  .roadmap { position: relative; padding-left: 32px; }
+  .roadmap::before {
+    content: '';
+    position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+
+  .roadmap-step {
+    position: relative;
+    margin-bottom: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    transition: border-color .2s;
+  }
+
+  .roadmap-step:hover { border-color: var(--accent); }
+
+  .roadmap-step::before {
+    content: '';
+    position: absolute;
+    left: -28px; top: 22px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg);
+  }
+
+  .roadmap-step.done::before { background: var(--accent); }
+
+  .step-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .roadmap-step h3 { font-size: 1.05rem; margin-bottom: 6px; }
+  .roadmap-step p { font-size: 0.88rem; color: var(--muted); }
+  .roadmap-step ul { margin-top: 10px; padding-left: 18px; }
+  .roadmap-step li { font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+
+  /* Quiz */
+  .quiz-q { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  .quiz-q p { font-weight: 500; margin-bottom: 14px; }
+  .quiz-opts { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-align: left;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent2); background: rgba(88,166,255,.1); }
+  .quiz-opt.correct { border-color: var(--accent); background: rgba(63,185,80,.15); color: var(--accent); }
+  .quiz-opt.wrong { border-color: var(--accent3); background: rgba(247,129,102,.15); color: var(--accent3); }
+  .quiz-feedback { margin-top: 10px; font-size: 0.85rem; color: var(--muted); display: none; }
+  .quiz-feedback.show { display: block; }
+  .quiz-score { text-align: center; padding: 30px; font-size: 1.1rem; }
+  .quiz-score span { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--accent); display: block; }
+
+  /* Use case tabs */
+  .use-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .use-tab {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 16px; cursor: pointer;
+    font-size: 0.85rem; color: var(--muted); transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .use-tab.active, .use-tab:hover { border-color: var(--accent2); color: var(--accent2); }
+  .use-content { display: none; }
+  .use-content.active { display: block; animation: fadeIn .3s; }
+
+  .pill { display: inline-block; font-size: 0.75rem; padding: 2px 10px; border-radius: 20px; margin-right: 6px; font-family: 'DM Mono', monospace; }
+  .pill-green { background: rgba(63,185,80,.15); color: var(--accent); border: 1px solid rgba(63,185,80,.3); }
+  .pill-blue { background: rgba(88,166,255,.15); color: var(--accent2); border: 1px solid rgba(88,166,255,.3); }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .tip-box {
+    background: rgba(88,166,255,.08);
+    border: 1px solid rgba(88,166,255,.25);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 0.9rem;
+  }
+  .tip-box strong { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<div class="dna-header">
+  <div class="dna-strip"></div>
+  <div class="badge">You know Python · Some Biopython exposure</div>
+  <h1>Biopython Field Guide</h1>
+  <p>What it is, what it's used for, and how to actually learn it — interactively.</p>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showSection('what')">🧬 What is it?</button>
+  <button class="nav-btn" onclick="showSection('modules')">📦 Key Modules</button>
+  <button class="nav-btn" onclick="showSection('usecases')">🔬 Use Cases + Code</button>
+  <button class="nav-btn" onclick="showSection('roadmap')">🗺️ Learning Roadmap</button>
+  <button class="nav-btn" onclick="showSection('quiz')">🧠 Quick Quiz</button>
+</nav>
+
+<!-- WHAT IS IT -->
+<div id="what" class="section active">
+  <h2>What is Biopython?</h2>
+  <p class="section-intro">Think of it as Python's "biology toolkit" — a collection of tools for working with biological data that would take weeks to build from scratch.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🧬</div>
+      <h3>DNA / RNA / Proteins</h3>
+      <p>Read, write, and manipulate biological sequences. Transcribe DNA → RNA, translate to protein, find motifs.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h3>Database Access</h3>
+      <p>Query NCBI, UniProt, PDB, Entrez directly from Python — no browser needed.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📁</div>
+      <h3>File Formats</h3>
+      <p>Parse FASTA, GenBank, PDB, FASTQ, Stockholm, and 20+ more bioinformatics formats.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h3>Sequence Alignment</h3>
+      <p>Pairwise and multiple sequence alignment. Wraps tools like BLAST, ClustalW, MUSCLE.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌳</div>
+      <h3>Phylogenetics</h3>
+      <p>Build and visualize evolutionary trees from sequence data.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧪</div>
+      <h3>3D Structures</h3>
+      <p>Parse and analyze protein 3D structures from PDB files.</p>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong>💡 The core idea:</strong> Biopython gives you <code>Seq</code> objects (sequences), <code>SeqRecord</code> objects (sequences + metadata), and tools to convert between formats, query databases, and run analyses — all with familiar Python syntax.
+  </div>
+
+  <div class="code-block">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+    <span class="comment"># Installation</span><br>
+    pip install biopython<br><br>
+    <span class="comment"># Your first 5 lines of Biopython</span><br>
+    <span class="keyword">from</span> Bio.<span class="func">Seq</span> <span class="keyword">import</span> Seq<br><br>
+    dna = <span class="func">Seq</span>(<span class="string">"ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG"</span>)<br>
+    <span class="func">print</span>(dna.translate())    <span class="comment"># → protein sequence</span><br>
+    <span class="func">print</span>(dna.complement())  <span class="comment"># → complementary strand</span><br>
+    <span class="func">print</span>(dna.reverse_complement())
+  </div>
+</div>
+
+<!-- MODULES -->
+<div id="modules" class="section">
+  <h2>Key Modules</h2>
+  <p class="section-intro">Biopython is organized into submodules. Here are the ones you'll use most — click any to learn more about it.</p>
+
+  <div class="module-map">
+    <div class="module-card green">
+      <h4>Bio.Seq</h4>
+      <p>The core. Represents DNA, RNA, protein sequences. Supports transcription, translation, reverse complement.</p>
+    </div>
+    <div class="module-card green">
+      <h4>Bio.SeqIO</h4>
+      <p>Read/write FASTA, GenBank, FASTQ files. The pandas read_csv() of bioinformatics.</p>
+    </div>
+    <div class="module-card blue">
+      <h4>Bio.Entrez</h4>
+      <p>Query NCBI databases (PubMed, GenBank, taxonomy) directly from Python.</p>
+    </div>
+    <div class="module-card blue">
+      <h4>Bio.Blast</h4>
+      <p>Run BLAST searches (local or remote) and parse results programmatically.</p>
+    </div>
+    <div class="module-card purple">
+      <h4>Bio.AlignIO</h4>
+      <p>Read/write multiple sequence alignments in various formats.</p>
+    </div>
+    <div class="module-card purple">
+      <h4>Bio.pairwise2</h4>
+      <p>Local and global pairwise sequence alignment with scoring.</p>
+    </div>
+    <div class="module-card red">
+      <h4>Bio.PDB</h4>
+      <p>Parse PDB files. Analyze protein 3D structures, atoms, chains, residues.</p>
+    </div>
+    <div class="module-card yellow">
+      <h4>Bio.Phylo</h4>
+      <p>Build, parse, and visualize phylogenetic trees (Newick, Nexus formats).</p>
+    </div>
+    <div class="module-card red">
+      <h4>Bio.motifs</h4>
+      <p>Find and analyze sequence motifs — useful for transcription factor binding sites.</p>
+    </div>
+    <div class="module-card yellow">
+      <h4>Bio.PopGen</h4>
+      <p>Population genetics statistics and coalescent simulations.</p>
+    </div>
+  </div>
+</div>
+
+<!-- USE CASES + CODE -->
+<div id="usecases" class="section">
+  <h2>Real Use Cases + Code</h2>
+  <p class="section-intro">Pick a use case to see how Biopython handles it.</p>
+
+  <div class="use-tabs">
+    <button class="use-tab active" onclick="showUse('seq')">Sequence manipulation</button>
+    <button class="use-tab" onclick="showUse('fileio')">Read a FASTA file</button>
+    <button class="use-tab" onclick="showUse('blast')">BLAST search</button>
+    <button class="use-tab" onclick="showUse('entrez')">Query NCBI</button>
+    <button class="use-tab" onclick="showUse('pdb')">3D protein</button>
+  </div>
+
+  <div id="use-seq" class="use-content active">
+    <span class="pill pill-green">Beginner</span> <span class="pill pill-blue">Bio.Seq</span>
+    <p style="margin: 12px 0; color: var(--muted)">Work with a DNA sequence — transcribe it, translate it, find GC content.</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="keyword">from</span> Bio.Seq <span class="keyword">import</span> Seq<br>
+<span class="keyword">from</span> Bio.SeqUtils <span class="keyword">import</span> gc_fraction<br><br>
+dna = <span class="func">Seq</span>(<span class="string">"ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG"</span>)<br><br>
+<span class="comment"># Transcription: DNA → mRNA</span><br>
+mrna = dna.<span class="func">transcribe</span>()          <span class="comment"># AUGGCCAUUGUAAUGGGCCGCUGAAAGGGU...</span><br><br>
+<span class="comment"># Translation: mRNA → protein</span><br>
+protein = dna.<span class="func">translate</span>()        <span class="comment"># MAIVMGR*KGAR*</span><br>
+protein_clean = dna.<span class="func">translate</span>(to_stop=<span class="keyword">True</span>)  <span class="comment"># Stops at first stop codon</span><br><br>
+<span class="comment"># GC Content (0-1 scale)</span><br>
+gc = <span class="func">gc_fraction</span>(dna)            <span class="comment"># e.g. 0.5384...</span><br>
+<span class="func">print</span>(<span class="string">f"Protein: </span>{protein_clean}<span class="string">"</span>)<br>
+<span class="func">print</span>(<span class="string">f"GC content: </span>{gc:.1%}<span class="string">"</span>)
+    </div>
+  </div>
+
+  <div id="use-fileio" class="use-content">
+    <span class="pill pill-green">Beginner</span> <span class="pill pill-blue">Bio.SeqIO</span>
+    <p style="margin: 12px 0; color: var(--muted)">Read a multi-sequence FASTA file and loop through records — like pandas for sequences.</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="keyword">from</span> Bio <span class="keyword">import</span> SeqIO<br><br>
+<span class="comment"># Parse a FASTA file — returns an iterator of SeqRecord objects</span><br>
+<span class="keyword">for</span> record <span class="keyword">in</span> SeqIO.<span class="func">parse</span>(<span class="string">"sequences.fasta"</span>, <span class="string">"fasta"</span>):<br>
+    <span class="func">print</span>(record.id)         <span class="comment"># sequence identifier</span><br>
+    <span class="func">print</span>(record.description) <span class="comment"># full header</span><br>
+    <span class="func">print</span>(record.seq)         <span class="comment"># the sequence itself</span><br>
+    <span class="func">print</span>(<span class="func">len</span>(record.seq))    <span class="comment"># length</span><br><br>
+<span class="comment"># Convert FASTA → GenBank format in one line</span><br>
+SeqIO.<span class="func">convert</span>(<span class="string">"sequences.fasta"</span>, <span class="string">"fasta"</span>, <span class="string">"output.gb"</span>, <span class="string">"genbank"</span>)<br><br>
+<span class="comment"># Load all into a dict (indexed by ID)</span><br>
+records = SeqIO.<span class="func">to_dict</span>(SeqIO.<span class="func">parse</span>(<span class="string">"sequences.fasta"</span>, <span class="string">"fasta"</span>))<br>
+my_gene = records[<span class="string">"gene_id_123"</span>]
+    </div>
+  </div>
+
+  <div id="use-blast" class="use-content">
+    <span class="pill pill-blue">Intermediate</span> <span class="pill pill-blue">Bio.Blast</span>
+    <p style="margin: 12px 0; color: var(--muted)">Run BLAST remotely on NCBI and parse results — find similar sequences in the database.</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="keyword">from</span> Bio.Blast <span class="keyword">import</span> NCBIWWW, NCBIXML<br>
+<span class="keyword">from</span> Bio <span class="keyword">import</span> SeqIO<br><br>
+<span class="comment"># Read a sequence from file</span><br>
+record = SeqIO.<span class="func">read</span>(<span class="string">"query.fasta"</span>, <span class="string">"fasta"</span>)<br><br>
+<span class="comment"># Run BLASTn against NCBI nt database (takes a few seconds)</span><br>
+result_handle = NCBIWWW.<span class="func">qblast</span>(<span class="string">"blastn"</span>, <span class="string">"nt"</span>, record.seq)<br><br>
+<span class="comment"># Parse results</span><br>
+blast_records = NCBIXML.<span class="func">parse</span>(result_handle)<br>
+<span class="keyword">for</span> blast_record <span class="keyword">in</span> blast_records:<br>
+    <span class="keyword">for</span> alignment <span class="keyword">in</span> blast_record.alignments[:<span class="number">5</span>]:  <span class="comment"># top 5</span><br>
+        hsp = alignment.hsps[<span class="number">0</span>]<br>
+        <span class="func">print</span>(<span class="string">f"Hit: </span>{alignment.title[:50]}<span class="string">"</span>)<br>
+        <span class="func">print</span>(<span class="string">f"  E-value: </span>{hsp.expect}<span class="string">, Score: </span>{hsp.score}<span class="string">"</span>)
+    </div>
+  </div>
+
+  <div id="use-entrez" class="use-content">
+    <span class="pill pill-blue">Intermediate</span> <span class="pill pill-blue">Bio.Entrez</span>
+    <p style="margin: 12px 0; color: var(--muted)">Query NCBI's Entrez databases — fetch gene records, papers, taxonomy, etc.</p>
+    <div class="code-block">
+      class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="keyword">from</span> Bio <span class="keyword">import</span> Entrez, SeqIO<br><br>
+<span class="comment"># Always set your email (NCBI requires this)</span><br>
+Entrez.email = <span class="string">"you@example.com"</span><br><br>
+<span class="comment"># Search for a gene by name</span><br>
+handle = Entrez.<span class="func">esearch</span>(db=<span class="string">"nucleotide"</span>, term=<span class="string">"BRCA1[Gene] AND human[Organism]"</span>)<br>
+results = Entrez.<span class="func">read</span>(handle)<br>
+ids = results[<span class="string">"IdList"</span>]<br>
+<span class="func">print</span>(<span class="string">f"Found </span>{<span class="func">len</span>(ids)}<span class="string"> records"</span>)<br><br>
+<span class="comment"># Fetch the first result</span><br>
+handle = Entrez.<span class="func">efetch</span>(db=<span class="string">"nucleotide"</span>, id=ids[<span class="number">0</span>], rettype=<span class="string">"gb"</span>, retmode=<span class="string">"text"</span>)<br>
+record = SeqIO.<span class="func">read</span>(handle, <span class="string">"genbank"</span>)<br>
+<span class="func">print</span>(record.name, record.description)<br>
+<span class="func">print</span>(record.seq[:<span class="number">100</span>])  <span class="comment"># first 100 bases</span>
+    </div>
+  </div>
+
+  <div id="use-pdb" class="use-content">
+    <span class="pill pill-blue">Intermediate</span> <span class="pill pill-blue">Bio.PDB</span>
+    <p style="margin: 12px 0; color: var(--muted)">Parse a PDB file and extract structural info — chains, residues, atoms, distances.</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<span class="keyword">from</span> Bio.PDB <span class="keyword">import</span> PDBParser, PPBuilder<br><br>
+parser = <span class="func">PDBParser</span>(QUIET=<span class="keyword">True</span>)<br>
+structure = parser.<span class="func">get_structure</span>(<span class="string">"protein"</span>, <span class="string">"1abc.pdb"</span>)<br><br>
+<span class="comment"># Hierarchy: Structure → Model → Chain → Residue → Atom</span><br>
+model = structure[<span class="number">0</span>]           <span class="comment"># first model</span><br>
+chain_a = model[<span class="string">"A"</span>]           <span class="comment"># chain A</span><br><br>
+<span class="keyword">for</span> residue <span class="keyword">in</span> chain_a.<span class="func">get_residues</span>():<br>
+    <span class="func">print</span>(residue.resname, residue.id[<span class="number">1</span>])  <span class="comment"># e.g. ALA 23</span><br><br>
+<span class="comment"># Get all CA (alpha carbon) atom positions</span><br>
+ca_atoms = [atom <span class="keyword">for</span> atom <span class="keyword">in</span> structure.<span class="func">get_atoms</span>() <span class="keyword">if</span> atom.name == <span class="string">"CA"</span>]<br>
+<span class="func">print</span>(<span class="string">f"</span>{<span class="func">len</span>(ca_atoms)}<span class="string"> residues in structure"</span>)
+    </div>
+  </div>
+</div>
+
+<!-- ROADMAP -->
+<div id="roadmap" class="section">
+  <h2>Learning Roadmap</h2>
+  <p class="section-intro">Since you already know Python, here's a practical path from "some Biopython" to confident practitioner.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-step done">
+      <div class="step-label">✓ Done</div>
+      <h3>Python fundamentals</h3>
+      <p>Lists, loops, functions, file I/O, classes. You've got this.</p>
+    </div>
+
+    <div class="roadmap-step">
+      <div class="step-label">Week 1–2</div>
+      <h3>Seq & SeqRecord — the building blocks</h3>
+      <p>Everything in Biopython is built on these two objects. Master them first.</p>
+      <ul>
+        <li>Create Seq objects, run transcription & translation</li>
+        <li>Parse FASTA files with SeqIO.parse()</li>
+        <li>Write/convert between file formats</li>
+        <li><a href="https://biopython.org/DIST/docs/tutorial/Tutorial.html#chapter-2" target="_blank">Official tutorial: Chapters 2–5</a></li>
+      </ul>
+    </div>
+
+    <div class="roadmap-step">
+      <div class="step-label">Week 3</div>
+      <h3>NCBI Entrez — fetch real data</h3>
+      <p>Learn to pull sequences and records from NCBI databases programmatically.</p>
+      <ul>
+        <li>esearch(), efetch(), einfo()</li>
+        <li>Download GenBank records for any gene</li>
+        <li>Practice: fetch the BRCA1 gene sequence</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-step">
+      <div class="step-label">Week 4</div>
+      <h3>BLAST & Alignment</h3>
+      <p>Run remote BLAST searches and do pairwise alignment.</p>
+      <ul>
+        <li>NCBIWWW.qblast() for remote BLAST</li>
+        <li>Parse BLAST XML output</li>
+        <li>Bio.pairwise2 for local/global alignment</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-step">
+      <div class="step-label">Week 5–6</div>
+      <h3>Choose your specialization</h3>
+      <p>Go deep on what matters for your work or projects.</p>
+      <ul>
+        <li>🧫 Genomics → SeqFeatures, annotation, GFF files</li>
+        <li>🧪 Structural biology → Bio.PDB, 3D analysis</li>
+        <li>🌳 Evolution → Bio.Phylo, tree building</li>
+        <li>🔬 Next-gen sequencing → FASTQ parsing, quality scores</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-step">
+      <div class="step-label">Ongoing</div>
+      <h3>Build a real project</h3>
+      <p>Nothing beats building something real. Some ideas:</p>
+      <ul>
+        <li>Script that fetches, filters & saves sequences from NCBI</li>
+        <li>GC content calculator across a genome</li>
+        <li>Motif finder in a set of promoter sequences</li>
+        <li>Species phylogeny from downloaded sequences</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tip-box" style="margin-top: 24px;">
+    <strong>📚 Best resources:</strong> 
+    <a href="https://biopython.org/DIST/docs/tutorial/Tutorial.html" target="_blank">Official Biopython Tutorial</a> (the best starting point) · 
+    <a href="https://github.com/biopython/biopython/tree/master/Doc/examples" target="_blank">Official examples on GitHub</a> · 
+    <a href="https://www.biostars.org/t/biopython/" target="_blank">Biostars community</a>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="section">
+  <h2>Quick Knowledge Check</h2>
+  <p class="section-intro">5 questions to see how much is sticking. No pressure — it's just for you.</p>
+
+  <div id="quiz-body">
+    <div class="quiz-q" id="q1">
+      <p>1. Which Biopython module would you use to <strong>read a FASTA file</strong>?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="answer(this, false, 'q1')">Bio.Seq</button>
+        <button class="quiz-opt" onclick="answer(this, true, 'q1')">Bio.SeqIO</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q1')">Bio.Entrez</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q1')">Bio.AlignIO</button>
+      </div>
+      <div class="quiz-feedback" id="q1-fb">✅ <strong>SeqIO</strong> is the I/O module for sequence files — think of it like pandas' read_csv() but for bioinformatics formats.</div>
+    </div>
+
+    <div class="quiz-q" id="q2">
+      <p>2. What does <code>dna.translate()</code> return?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="answer(this, false, 'q2')">The complementary DNA strand</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q2')">An mRNA sequence</button>
+        <button class="quiz-opt" onclick="answer(this, true, 'q2')">A protein (amino acid) sequence</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q2')">A GC content value</button>
+      </div>
+      <div class="quiz-feedback" id="q2-fb">✅ <strong>translate()</strong> goes DNA → protein directly. Use <strong>transcribe()</strong> first if you want the mRNA intermediate step explicitly.</div>
+    </div>
+
+    <div class="quiz-q" id="q3">
+      <p>3. What is a <strong>SeqRecord</strong>?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="answer(this, false, 'q3')">A database record from NCBI</button>
+        <button class="quiz-opt" onclick="answer(this, true, 'q3')">A sequence + its metadata (ID, description, annotations)</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q3')">A BLAST search result</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q3')">A protein structure</button>
+      </div>
+      <div class="quiz-feedback" id="q3-fb">✅ <strong>SeqRecord</strong> wraps a Seq with extra info: ID, description, features, annotations. It's what SeqIO.parse() returns.</div>
+    </div>
+
+    <div class="quiz-q" id="q4">
+      <p>4. Which function do you use to <strong>search NCBI databases</strong>?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="answer(this, false, 'q4')">Entrez.efetch()</button>
+        <button class="quiz-opt" onclick="answer(this, true, 'q4')">Entrez.esearch()</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q4')">Entrez.einfo()</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q4')">NCBIWWW.qblast()</button>
+      </div>
+      <div class="quiz-feedback" id="q4-fb">✅ <strong>esearch()</strong> searches and returns IDs. Then use <strong>efetch()</strong> to actually download those records. qblast() is specifically for BLAST.</div>
+    </div>
+
+    <div class="quiz-q" id="q5">
+      <p>5. In Bio.PDB, what is the <strong>hierarchy</strong> of a protein structure?</p>
+      <div class="quiz-opts">
+        <button class="quiz-opt" onclick="answer(this, false, 'q5')">Structure → Chain → Model → Residue → Atom</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q5')">Model → Structure → Residue → Chain</button>
+        <button class="quiz-opt" onclick="answer(this, true, 'q5')">Structure → Model → Chain → Residue → Atom</button>
+        <button class="quiz-opt" onclick="answer(this, false, 'q5')">Chain → Model → Structure → Atom</button>
+      </div>
+      <div class="quiz-feedback" id="q5-fb">✅ It's <strong>SMCRA</strong>: Structure → Model → Chain → Residue → Atom. This nested structure mirrors how PDB files are organized.</div>
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <button onclick="showScore()" style="background: var(--accent); color: #000; border: none; padding: 12px 32px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;">See my score</button>
+    </div>
+  </div>
+
+  <div class="quiz-score" id="quiz-score" style="display:none;">
+    <span id="score-val">0/5</span>
+    <p id="score-msg" style="color: var(--muted); margin-top: 8px;"></p>
+    <button onclick="resetQuiz()" style="margin-top: 20px; background: none; border: 1px solid var(--border); color: var(--muted); padding: 8px 20px; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif;">Try again</button>
+  </div>
+</div>
+
+<script>
+  let answers = {};
+  let score = 0;
+
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function showUse(id) {
+    document.querySelectorAll('.use-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.use-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('use-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function answer(btn, correct, qid) {
+    if (answers[qid] !== undefined) return;
+    answers[qid] = correct;
+    if (correct) score++;
+    btn.classList.add(correct ? 'correct' : 'wrong');
+    if (!correct) {
+      btn.parentElement.querySelectorAll('.quiz-opt').forEach(b => {
+        if (b.onclick.toString().includes('true')) b.classList.add('correct');
+      });
+    }
+    btn.parentElement.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+    const fb = document.getElementById(qid + '-fb');
+    fb.classList.add('show');
+  }
+
+  function showScore() {
+    const msgs = ['Keep studying — you\'ll get there!', 'Good start!', 'Solid foundation!', 'Great work!', 'Excellent — you\'ve got this!', 'Perfect score! You\'re ready to build!'];
+    document.getElementById('quiz-body').style.display = 'none';
+    document.getElementById('quiz-score').style.display = 'block';
+    document.getElementById('score-val').textContent = score + '/5';
+    document.getElementById('score-msg').textContent = msgs[score];
+  }
+
+  function resetQuiz() {
+    answers = {}; score = 0;
+    document.querySelectorAll('.quiz-opt').forEach(b => { b.className = 'quiz-opt'; b.disabled = false; });
+    document.querySelectorAll('.quiz-feedback').forEach(f => f.classList.remove('show'));
+    document.getElementById('quiz-body').style.display = 'block';
+    document.getElementById('quiz-score').style.display = 'none';
+  }
+
+  function copyCode(btn) {
+    const block = btn.parentElement;
+    const text = block.innerText.replace('copy\n', '').replace('copy', '').trim();
+    navigator.clipboard.writeText(text).then(() => { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 2000); });
+  }
+</script>
+</body>
+</html>
